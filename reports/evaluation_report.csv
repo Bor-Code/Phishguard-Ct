@@ -1,0 +1,26 @@
+Metric,Value
+Generated At,2026-10-26T00:47:36.100738+00:00
+Suspect Threshold,0.75
+Total Samples,44
+Phishing Samples,24
+Benign Samples,20
+True Positives,18
+False Positives,0
+True Negatives,20
+False Negatives,6
+Precision,1.0000
+Recall,0.7500
+F1 Score,0.8571
+False Positive Rate,0.0000
+
+Brand,Total Samples,True Positives,False Negatives,Recall
+paypal,4,3,1,0.7500
+apple,4,2,2,0.5000
+google,2,2,0,1.0000
+microsoft,1,1,0,1.0000
+binance,3,2,1,0.6667
+amazon,2,2,0,1.0000
+netflix,2,2,0,1.0000
+coinbase,2,2,0,1.0000
+meta,2,1,1,0.5000
+steam,2,1,1,0.5000

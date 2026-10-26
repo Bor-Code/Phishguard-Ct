@@ -1,0 +1,16 @@
+[
+  {"phish_id": 10001, "url": "https://paypa1-security-verification.com/login", "target": "paypal", "verified": "yes"},
+  {"phish_id": 10002, "url": "https://paypal-update-account.online/auth", "target": "paypal", "verified": "yes"},
+  {"phish_id": 10003, "url": "https://apple-id-manage-account.info/signin", "target": "apple", "verified": "yes"},
+  {"phish_id": 10004, "url": "https://app1e-support-security.com/", "target": "apple", "verified": "yes"},
+  {"phish_id": 10005, "url": "https://login.micros0ft-online-verify.net/auth", "target": "microsoft", "verified": "yes"},
+  {"phish_id": 10006, "url": "https://office365-security-update.com/mail", "target": "microsoft", "verified": "yes"},
+  {"phish_id": 10007, "url": "https://g00gle-accounts-verification.xyz/login", "target": "google", "verified": "yes"},
+  {"phish_id": 10008, "url": "https://binance-security-kyc.top/user", "target": "binance", "verified": "yes"},
+  {"phish_id": 10009, "url": "https://netflix-billing-center.club/update", "target": "netflix", "verified": "yes"},
+  {"phish_id": 10010, "url": "https://steam-community-trade-offer.net/auth", "target": "steam", "verified": "yes"},
+  {"phish_id": 10011, "url": "https://amazon-prime-security-check.com/orders", "target": "amazon", "verified": "yes"},
+  {"phish_id": 10012, "url": "https://coinbase-wallet-verification.org/login", "target": "coinbase", "verified": "yes"},
+  {"phish_id": 10013, "url": "https://faceb00k-security-notice.info/confirm", "target": "meta", "verified": "yes"},
+  {"phish_id": 10014, "url": "https://instagram-copyright-appeal.site/form", "target": "meta", "verified": "yes"}
+]
