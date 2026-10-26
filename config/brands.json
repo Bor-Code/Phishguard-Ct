@@ -1,0 +1,52 @@
+[
+  {
+    "name": "paypal",
+    "canonical_domains": ["paypal.com", "paypal.me"],
+    "keywords": ["paypal"]
+  },
+  {
+    "name": "apple",
+    "canonical_domains": ["apple.com", "icloud.com"],
+    "keywords": ["apple", "icloud"]
+  },
+  {
+    "name": "google",
+    "canonical_domains": ["google.com", "gmail.com"],
+    "keywords": ["google", "gmail"]
+  },
+  {
+    "name": "microsoft",
+    "canonical_domains": ["microsoft.com", "live.com", "office.com"],
+    "keywords": ["microsoft", "outlook", "office365"]
+  },
+  {
+    "name": "binance",
+    "canonical_domains": ["binance.com", "binance.us"],
+    "keywords": ["binance"]
+  },
+  {
+    "name": "amazon",
+    "canonical_domains": ["amazon.com", "amazon.co.uk", "amazon.de"],
+    "keywords": ["amazon", "primevideo"]
+  },
+  {
+    "name": "netflix",
+    "canonical_domains": ["netflix.com"],
+    "keywords": ["netflix"]
+  },
+  {
+    "name": "coinbase",
+    "canonical_domains": ["coinbase.com"],
+    "keywords": ["coinbase"]
+  },
+  {
+    "name": "meta",
+    "canonical_domains": ["facebook.com", "instagram.com", "meta.com"],
+    "keywords": ["facebook", "instagram", "meta"]
+  },
+  {
+    "name": "steam",
+    "canonical_domains": ["steampowered.com", "steamcommunity.com"],
+    "keywords": ["steam", "steampowered"]
+  }
+]
