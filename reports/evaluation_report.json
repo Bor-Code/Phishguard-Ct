@@ -1,0 +1,236 @@
+{
+  "generated_at": "2026-10-26T00:47:36.100738+00:00",
+  "suspect_threshold": 0.75,
+  "overall_metrics": {
+    "total_samples": 44,
+    "phishing_samples": 24,
+    "benign_samples": 20,
+    "true_positives": 18,
+    "false_positives": 0,
+    "true_negatives": 20,
+    "false_negatives": 6,
+    "precision": 1.0,
+    "recall": 0.75,
+    "f1_score": 0.8571,
+    "false_positive_rate": 0.0
+  },
+  "brand_metrics": [
+    {
+      "brand": "paypal",
+      "total_samples": 4,
+      "true_positives": 3,
+      "false_negatives": 1,
+      "recall": 0.75
+    },
+    {
+      "brand": "apple",
+      "total_samples": 4,
+      "true_positives": 2,
+      "false_negatives": 2,
+      "recall": 0.5
+    },
+    {
+      "brand": "google",
+      "total_samples": 2,
+      "true_positives": 2,
+      "false_negatives": 0,
+      "recall": 1.0
+    },
+    {
+      "brand": "microsoft",
+      "total_samples": 1,
+      "true_positives": 1,
+      "false_negatives": 0,
+      "recall": 1.0
+    },
+    {
+      "brand": "binance",
+      "total_samples": 3,
+      "true_positives": 2,
+      "false_negatives": 1,
+      "recall": 0.6667
+    },
+    {
+      "brand": "amazon",
+      "total_samples": 2,
+      "true_positives": 2,
+      "false_negatives": 0,
+      "recall": 1.0
+    },
+    {
+      "brand": "netflix",
+      "total_samples": 2,
+      "true_positives": 2,
+      "false_negatives": 0,
+      "recall": 1.0
+    },
+    {
+      "brand": "coinbase",
+      "total_samples": 2,
+      "true_positives": 2,
+      "false_negatives": 0,
+      "recall": 1.0
+    },
+    {
+      "brand": "meta",
+      "total_samples": 2,
+      "true_positives": 1,
+      "false_negatives": 1,
+      "recall": 0.5
+    },
+    {
+      "brand": "steam",
+      "total_samples": 2,
+      "true_positives": 1,
+      "false_negatives": 1,
+      "recall": 0.5
+    }
+  ],
+  "flagged_domains_count": 18,
+  "flagged_domains": [
+    {
+      "domain": "paypa1-security-verification.com",
+      "source": "phishtank",
+      "target_brand": "paypal",
+      "matched_term": "paypa1",
+      "composite_score": 0.9,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "paypal-update-account.online",
+      "source": "phishtank",
+      "target_brand": "paypal",
+      "matched_term": "paypal",
+      "composite_score": 1.0,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "apple-id-manage-account.info",
+      "source": "phishtank",
+      "target_brand": "apple",
+      "matched_term": "apple",
+      "composite_score": 1.0,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "app1e-support-security.com",
+      "source": "phishtank",
+      "target_brand": "apple",
+      "matched_term": "app1e",
+      "composite_score": 0.88,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "login.micros0ft-online-verify.net",
+      "source": "phishtank",
+      "target_brand": "microsoft",
+      "matched_term": "micros0ft",
+      "composite_score": 0.95,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "g00gle-accounts-verification.xyz",
+      "source": "phishtank",
+      "target_brand": "google",
+      "matched_term": "g00gle",
+      "composite_score": 0.85,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "binance-security-kyc.top",
+      "source": "phishtank",
+      "target_brand": "binance",
+      "matched_term": "binance",
+      "composite_score": 1.0,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "netflix-billing-center.club",
+      "source": "phishtank",
+      "target_brand": "netflix",
+      "matched_term": "netflix",
+      "composite_score": 1.0,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "steam-community-trade-offer.net",
+      "source": "phishtank",
+      "target_brand": "steam",
+      "matched_term": "steam",
+      "composite_score": 1.0,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "amazon-prime-security-check.com",
+      "source": "phishtank",
+      "target_brand": "amazon",
+      "matched_term": "amazon",
+      "composite_score": 1.0,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "coinbase-wallet-verification.org",
+      "source": "phishtank",
+      "target_brand": "coinbase",
+      "matched_term": "coinbase",
+      "composite_score": 1.0,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "payoal-resolution-center.com",
+      "source": "openphish",
+      "target_brand": "paypal",
+      "matched_term": "payoal",
+      "composite_score": 0.8627,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "accounts-goog1e-recovery.com",
+      "source": "openphish",
+      "target_brand": "google",
+      "matched_term": "goog1e",
+      "composite_score": 0.9,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "binance-earn-bonus-claim.com",
+      "source": "openphish",
+      "target_brand": "binance",
+      "matched_term": "binance",
+      "composite_score": 1.0,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "netflix-subscription-renew.com",
+      "source": "openphish",
+      "target_brand": "netflix",
+      "matched_term": "netflix",
+      "composite_score": 1.0,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "amazon-order-confirmation-issue.net",
+      "source": "openphish",
+      "target_brand": "amazon",
+      "matched_term": "amazon",
+      "composite_score": 1.0,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "coinbase-pro-security-login.com",
+      "source": "openphish",
+      "target_brand": "coinbase",
+      "matched_term": "coinbase",
+      "composite_score": 1.0,
+      "actual_is_phishing": true
+    },
+    {
+      "domain": "meta-business-verification-case.com",
+      "source": "openphish",
+      "target_brand": "meta",
+      "matched_term": "meta",
+      "composite_score": 1.0,
+      "actual_is_phishing": true
+    }
+  ]
+}
