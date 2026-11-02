@@ -45,6 +45,8 @@ class PhishGuardService:
         self.alerter = alerter or WebhookAlerter(
             webhook_url=self.settings.alert_webhook_url,
             min_alert_score=self.settings.min_alert_score,
+            provider=self.settings.alert_provider,
+            telegram_chat_id=self.settings.telegram_chat_id,
         )
 
         self.event_queue: asyncio.Queue[CertificateEvent] = asyncio.Queue()
