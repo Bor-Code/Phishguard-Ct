@@ -1,6 +1,11 @@
 import asyncio
-from typing import List, Optional
-import aiohttp
+from typing import Any, List, Optional
+
+try:
+    import aiohttp
+except ImportError:
+    aiohttp = None  # type: ignore[assignment]
+
 from phishguard.verification.certificate import analyze_certificate
 from phishguard.verification.heuristics import analyze_html_content
 from phishguard.verification.models import (
@@ -17,12 +22,17 @@ class DomainVerifier:
         max_response_bytes: int = 65536,
         user_agent: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     ) -> None:
-        self.timeout = aiohttp.ClientTimeout(total=timeout_seconds, connect=timeout_seconds / 2)
+        self.timeout_seconds = timeout_seconds
+        self.timeout = (
+            aiohttp.ClientTimeout(total=timeout_seconds, connect=timeout_seconds / 2)
+            if aiohttp is not None
+            else None
+        )
         self.max_response_bytes = max_response_bytes
         self.headers = {"User-Agent": user_agent}
 
     async def _fetch_url(
-        self, session: aiohttp.ClientSession, url: str
+        self, session: Any, url: str
     ) -> Optional[tuple[int, str, str]]:
         try:
             async with session.get(
@@ -35,7 +45,7 @@ class DomainVerifier:
                 content_chunk = await response.content.read(self.max_response_bytes)
                 text = content_chunk.decode("utf-8", errors="replace")
                 return response.status, str(response.url), text
-        except (aiohttp.ClientError, asyncio.TimeoutError, OSError):
+        except Exception:
             return None
 
     def _compile_risk_factors(
@@ -86,10 +96,12 @@ class DomainVerifier:
             not_after=not_after,
         )
 
-        async with aiohttp.ClientSession() as session:
-            fetch_result = await self._fetch_url(session, f"https://{domain}")
-            if fetch_result is None:
-                fetch_result = await self._fetch_url(session, f"http://{domain}")
+        fetch_result = None
+        if aiohttp is not None:
+            async with aiohttp.ClientSession() as session:
+                fetch_result = await self._fetch_url(session, f"https://{domain}")
+                if fetch_result is None:
+                    fetch_result = await self._fetch_url(session, f"http://{domain}")
 
         if fetch_result is not None:
             status_code, final_url, html_text = fetch_result

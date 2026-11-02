@@ -1,13 +1,15 @@
 import argparse
 import asyncio
+import json
 import logging
 import signal
 import sys
-from typing import Optional
 from phishguard.config import Settings
 from phishguard.evaluation.runner import main as run_evaluation
+from phishguard.scoring import ScoringEngine
 from phishguard.service import PhishGuardService
 from phishguard.storage import DatabaseManager
+from phishguard.watchlist import BrandWatchlist
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,6 +35,17 @@ def build_parser() -> argparse.ArgumentParser:
     monitor_parser.add_argument("--watchlist", help="Path to brands JSON watchlist")
     monitor_parser.add_argument("--max-events", type=int, default=0, help="Maximum events to process (0 for infinite)")
 
+    scan_parser = subparsers.add_parser(
+        "scan", help="Analyze a single domain or URL for phishing indicators"
+    )
+    scan_parser.add_argument("domain", help="Domain or URL to analyze")
+    scan_parser.add_argument("--watchlist", default=None, help="Path to brands JSON watchlist")
+    scan_parser.add_argument("--threshold", type=float, default=0.75, help="Suspect score threshold")
+    scan_parser.add_argument("--no-verify", action="store_true", help="Skip active HTTP/TLS verification probe")
+    scan_parser.add_argument("--json", action="store_true", help="Output analysis result as JSON")
+    scan_parser.add_argument("--save", action="store_true", help="Save suspect result into SQLite database")
+    scan_parser.add_argument("--db", default="phishguard.db", help="SQLite database path when using --save")
+
     eval_parser = subparsers.add_parser(
         "evaluate", help="Run benchmark evaluation against PhishTank and OpenPhish"
     )
@@ -50,6 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     list_parser.add_argument("--brand", default=None)
     list_parser.add_argument("--status", default=None)
     list_parser.add_argument("--limit", type=int, default=25)
+    list_parser.add_argument("--json", action="store_true", help="Output flagged records as JSON")
 
     return parser
 
@@ -65,6 +79,23 @@ def handle_list_command(args: argparse.Namespace) -> None:
     )
     db.close()
 
+    if getattr(args, "json", False):
+        payload = [
+            {
+                "domain": r.domain,
+                "target_brand": r.target_brand,
+                "matched_term": r.matched_term,
+                "composite_score": r.composite_score,
+                "final_confidence_score": r.final_confidence_score,
+                "is_live": r.is_live,
+                "status": r.status,
+                "risk_factors": r.risk_factors,
+            }
+            for r in records
+        ]
+        print(json.dumps(payload, indent=2))
+        return
+
     if not records:
         print("No flagged records found matching criteria.")
         return
@@ -74,6 +105,59 @@ def handle_list_command(args: argparse.Namespace) -> None:
     for r in records:
         live_str = "YES" if r.is_live else "NO"
         print(f"{r.domain:<35} {r.target_brand:<12} {r.final_confidence_score:<8.4f} {live_str:<6} {r.status:<12}")
+
+
+async def handle_scan_command(args: argparse.Namespace) -> None:
+    watchlist = (
+        BrandWatchlist.from_json_file(args.watchlist)
+        if args.watchlist
+        else BrandWatchlist.from_defaults()
+    )
+    scoring_engine = ScoringEngine(suspect_threshold=args.threshold)
+    database = DatabaseManager(database_path=args.db)
+
+    service = PhishGuardService(
+        watchlist=watchlist,
+        scoring_engine=scoring_engine,
+        database=database,
+    )
+    try:
+        result = await service.inspect_domain(
+            raw_input=args.domain,
+            verify=not args.no_verify,
+            persist=args.save,
+        )
+    finally:
+        database.close()
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+        return
+
+    verdict = (
+        "LEGITIMATE (WHITELISTED)"
+        if result["is_legitimate"]
+        else ("PHISHING SUSPECT" if result["is_phishing_suspect"] else "CLEAN / LOW RISK")
+    )
+    print(f"Domain           : {result['domain']}")
+    print(f"Verdict          : {verdict}")
+    print(f"Target Brand     : {result['target_brand'] or '-'}")
+    print(f"Matched Token    : {result['matched_term'] or '-'}")
+    print(f"Composite Score  : {result['composite_score']:.4f}")
+    print(f"Final Confidence : {result['final_confidence_score']:.4f}")
+    signals = result["signals"]
+    print(
+        f"Signals          : lev={signals['levenshtein']:.4f} "
+        f"key={signals['keyboard']:.4f} "
+        f"homo={signals['homoglyph']:.4f} "
+        f"affix={signals['subdomain_or_affix']:.4f}"
+    )
+    verification = result["verification"]
+    if verification is not None:
+        live_str = "YES" if verification["is_reachable"] else "NO"
+        factors = ", ".join(verification["risk_factors"]) if verification["risk_factors"] else "none"
+        print(f"Host Reachable   : {live_str} (status={verification['status_code']})")
+        print(f"Risk Factors     : {factors}")
 
 
 async def run_monitor_service(settings: Settings, max_events: int = 0) -> None:
@@ -127,6 +211,10 @@ def main() -> None:
 
     if command == "list":
         handle_list_command(args)
+        return
+
+    if command == "scan":
+        asyncio.run(handle_scan_command(args))
         return
 
     base_settings = Settings.from_env()

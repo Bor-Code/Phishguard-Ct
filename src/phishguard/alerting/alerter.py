@@ -1,7 +1,12 @@
 import asyncio
 import logging
 from typing import Optional
-import aiohttp
+
+try:
+    import aiohttp
+except ImportError:
+    aiohttp = None  # type: ignore[assignment]
+
 from phishguard.alerting.payload import format_alert_payload
 from phishguard.storage.models import FlaggedRecord
 
@@ -17,7 +22,12 @@ class WebhookAlerter:
     ) -> None:
         self.webhook_url = webhook_url.strip() if webhook_url else None
         self.min_alert_score = min_alert_score
-        self.timeout = aiohttp.ClientTimeout(total=timeout_seconds)
+        self.timeout_seconds = timeout_seconds
+        self.timeout = (
+            aiohttp.ClientTimeout(total=timeout_seconds)
+            if aiohttp is not None
+            else None
+        )
 
     def should_alert(self, record: FlaggedRecord) -> bool:
         return record.final_confidence_score >= self.min_alert_score
@@ -36,6 +46,10 @@ class WebhookAlerter:
 
         if not self.webhook_url:
             return True
+
+        if aiohttp is None:
+            logger.error("aiohttp is required to deliver webhook alerts")
+            return False
 
         payload = format_alert_payload(record)
         try:
@@ -59,7 +73,7 @@ class WebhookAlerter:
                         response.status,
                     )
                     return False
-        except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as error:
+        except Exception as error:
             logger.error(
                 "Webhook alert delivery encountered network error for domain %s: %s",
                 record.domain,

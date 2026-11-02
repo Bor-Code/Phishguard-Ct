@@ -71,6 +71,35 @@ async def test_service_process_event_flow():
 
 
 @pytest.mark.asyncio
+async def test_service_inspect_domain():
+    database = DatabaseManager(database_path=":memory:")
+    verifier = MockDomainVerifier()
+    service = PhishGuardService(
+        verifier=verifier,
+        database=database,
+    )
+
+    suspect_res = await service.inspect_domain(
+        "https://paypa1-secure-center.com/login",
+        verify=True,
+        persist=True,
+    )
+    assert suspect_res["domain"] == "paypa1-secure-center.com"
+    assert suspect_res["is_legitimate"] is False
+    assert suspect_res["is_phishing_suspect"] is True
+    assert suspect_res["target_brand"] == "paypal"
+    assert suspect_res["verification"] is not None
+    assert suspect_res["verification"]["is_reachable"] is True
+    assert service.database.get_domain("paypa1-secure-center.com") is not None
+
+    legit_res = await service.inspect_domain("https://www.paypal.com/signin", verify=False)
+    assert legit_res["domain"] == "www.paypal.com"
+    assert legit_res["is_legitimate"] is True
+    assert legit_res["is_phishing_suspect"] is False
+    assert legit_res["final_confidence_score"] == 0.0
+
+
+@pytest.mark.asyncio
 async def test_service_start_and_consume():
     database = DatabaseManager(database_path=":memory:")
     alerter = WebhookAlerter(webhook_url=None, min_alert_score=0.75)
@@ -105,11 +134,19 @@ def test_cli_parser_options():
     assert monitor_args.url == "wss://test.stream"
     assert monitor_args.max_events == 10
 
+    scan_args = parser.parse_args(["scan", "paypa1-login.com", "--no-verify", "--json", "--save"])
+    assert scan_args.command == "scan"
+    assert scan_args.domain == "paypa1-login.com"
+    assert scan_args.no_verify is True
+    assert scan_args.json is True
+    assert scan_args.save is True
+
     eval_args = parser.parse_args(["evaluate", "--threshold", "0.80"])
     assert eval_args.command == "evaluate"
     assert eval_args.threshold == 0.80
 
-    list_args = parser.parse_args(["list", "--brand", "paypal", "--limit", "50"])
+    list_args = parser.parse_args(["list", "--brand", "paypal", "--limit", "50", "--json"])
     assert list_args.command == "list"
     assert list_args.brand == "paypal"
     assert list_args.limit == 50
+    assert list_args.json is True
