@@ -1,6 +1,13 @@
 import pytest
 from aiohttp import web
-from phishguard.alerting import WebhookAlerter, format_alert_payload
+from phishguard.alerting import (
+    WebhookAlerter,
+    detect_webhook_provider,
+    format_alert_payload,
+    format_discord_payload,
+    format_slack_payload,
+    format_telegram_payload,
+)
 from phishguard.storage.models import FlaggedRecord
 
 
@@ -40,7 +47,35 @@ def test_format_alert_payload():
     assert "paypa1-update.com" in payload["content"]
     assert "paypa1-update.com" in payload["text"]
     assert len(payload["embeds"]) == 1
+    assert len(payload["blocks"]) >= 1
     assert payload["details"]["matched_term"] == "paypa1"
+
+
+def test_format_provider_specific_payloads():
+    record = create_record(score=0.91)
+
+    discord_payload = format_discord_payload(record)
+    assert discord_payload["username"] == "PhishGuard-CT"
+    assert len(discord_payload["embeds"]) == 1
+    assert discord_payload["embeds"][0]["title"] == "PhishGuard Threat Alert"
+
+    slack_payload = format_slack_payload(record)
+    assert "text" in slack_payload
+    assert len(slack_payload["blocks"]) == 4
+    assert slack_payload["blocks"][0]["type"] == "header"
+
+    telegram_payload = format_telegram_payload(record, chat_id="-100123456")
+    assert telegram_payload["parse_mode"] == "HTML"
+    assert telegram_payload["chat_id"] == "-100123456"
+    assert "paypa1-update.com" in telegram_payload["text"]
+
+
+def test_detect_webhook_provider():
+    assert detect_webhook_provider("https://discord.com/api/webhooks/123/abc") == "discord"
+    assert detect_webhook_provider("https://hooks.slack.com/services/T0/B0/X0") == "slack"
+    assert detect_webhook_provider("https://api.telegram.org/bot123:ABC/sendMessage") == "telegram"
+    assert detect_webhook_provider("https://custom.siem.local/events") == "generic"
+    assert detect_webhook_provider("https://custom.siem.local/events", "slack") == "slack"
 
 
 def test_alerter_should_alert():

@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import Optional
 
@@ -7,7 +6,7 @@ try:
 except ImportError:
     aiohttp = None  # type: ignore[assignment]
 
-from phishguard.alerting.payload import format_alert_payload
+from phishguard.alerting.payload import detect_webhook_provider, format_alert_payload
 from phishguard.storage.models import FlaggedRecord
 
 logger = logging.getLogger("phishguard.alerting")
@@ -19,10 +18,14 @@ class WebhookAlerter:
         webhook_url: Optional[str] = None,
         min_alert_score: float = 0.75,
         timeout_seconds: float = 5.0,
+        provider: Optional[str] = None,
+        telegram_chat_id: Optional[str] = None,
     ) -> None:
         self.webhook_url = webhook_url.strip() if webhook_url else None
         self.min_alert_score = min_alert_score
         self.timeout_seconds = timeout_seconds
+        self.provider = detect_webhook_provider(self.webhook_url, provider)
+        self.telegram_chat_id = telegram_chat_id.strip() if telegram_chat_id else None
         self.timeout = (
             aiohttp.ClientTimeout(total=timeout_seconds)
             if aiohttp is not None
@@ -51,7 +54,11 @@ class WebhookAlerter:
             logger.error("aiohttp is required to deliver webhook alerts")
             return False
 
-        payload = format_alert_payload(record)
+        payload = format_alert_payload(
+            record,
+            provider=self.provider,
+            chat_id=self.telegram_chat_id,
+        )
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
@@ -62,8 +69,9 @@ class WebhookAlerter:
                 ) as response:
                     if response.status < 300:
                         logger.info(
-                            "Webhook alert delivered successfully for domain %s (status=%d)",
+                            "Webhook alert delivered successfully for domain %s via %s (status=%d)",
                             record.domain,
+                            self.provider,
                             response.status,
                         )
                         return True

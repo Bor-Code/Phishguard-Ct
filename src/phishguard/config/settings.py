@@ -13,6 +13,8 @@ except ImportError:
 class Settings:
     certstream_url: str = "wss://api.certstream.dev/domains-only"
     alert_webhook_url: Optional[str] = None
+    alert_provider: str = "generic"
+    telegram_chat_id: Optional[str] = None
     database_path: str = "phishguard.db"
     log_level: str = "INFO"
     min_alert_score: float = 0.75
@@ -24,6 +26,10 @@ class Settings:
         load_dotenv()
         webhook_raw = os.getenv("ALERT_WEBHOOK_URL", "").strip()
         alert_webhook = webhook_raw if webhook_raw else None
+        provider_raw = os.getenv("ALERT_PROVIDER", "generic").strip().lower()
+        alert_provider = provider_raw if provider_raw else "generic"
+        chat_id_raw = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+        telegram_chat_id = chat_id_raw if chat_id_raw else None
         watchlist_raw = os.getenv("WATCHLIST_PATH", "").strip()
         watchlist_path = watchlist_raw if watchlist_raw else None
 
@@ -44,6 +50,8 @@ class Settings:
                 "CERTSTREAM_URL", "wss://api.certstream.dev/domains-only"
             ).strip(),
             alert_webhook_url=alert_webhook,
+            alert_provider=alert_provider,
+            telegram_chat_id=telegram_chat_id,
             database_path=os.getenv("DATABASE_PATH", "phishguard.db").strip(),
             log_level=os.getenv("LOG_LEVEL", "INFO").strip().upper(),
             min_alert_score=min_alert_score,
