@@ -1,7 +1,12 @@
 import asyncio
 import logging
-from typing import Optional
-import websockets
+from typing import Any, Optional
+
+try:
+    import websockets
+except ImportError:
+    websockets = None  # type: ignore[assignment]
+
 from phishguard.ingestion.models import CertificateEvent
 from phishguard.ingestion.parser import parse_certstream_message
 
@@ -40,6 +45,9 @@ class CertstreamClient:
         self._task = None
 
     async def _run_loop(self) -> None:
+        if websockets is None:
+            raise RuntimeError("websockets package is required to connect to Certstream")
+
         current_delay = self.reconnect_delay
         while self._running:
             try:
@@ -66,7 +74,7 @@ class CertstreamClient:
                 await asyncio.sleep(current_delay)
                 current_delay = min(current_delay * 2, self.max_reconnect_delay)
 
-    async def _consume_websocket(self, websocket: websockets.WebSocketClientProtocol) -> None:
+    async def _consume_websocket(self, websocket: Any) -> None:
         async for message in websocket:
             if not self._running:
                 break

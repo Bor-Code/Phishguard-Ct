@@ -97,6 +97,18 @@ phishguard evaluate \
 phishguard list --db phishguard.db --min-score 0.80 --brand paypal --limit 25
 ```
 
+### 4. Scan a Single Domain or URL
+
+```bash
+phishguard scan https://paypa1-security-verification.com/login --json
+```
+
+Skip active HTTP probing (offline scoring only):
+
+```bash
+phishguard scan faceb00k-security-notice.info --no-verify
+```
+
 ---
 
 ## Docker Deployment
