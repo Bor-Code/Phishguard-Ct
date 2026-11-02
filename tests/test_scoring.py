@@ -10,6 +10,7 @@ from phishguard.scoring import (
     levenshtein_similarity,
     normalize_homoglyphs,
 )
+from phishguard.watchlist import BrandWatchlist
 
 
 def test_levenshtein_distance_exact():
@@ -111,3 +112,27 @@ def test_scoring_engine_multi_brand_selection():
     assert result is not None
     assert result.target_brand == "paypal"
     assert result.is_phishing_suspect is True
+
+
+def test_scoring_engine_brand_keyword_matching():
+    engine = ScoringEngine(suspect_threshold=0.75)
+    watchlist = BrandWatchlist.from_defaults()
+    all_brands = watchlist.all_brands()
+
+    fb_result = engine.score_domain("faceb00k-security-notice.info", all_brands)
+    assert fb_result is not None
+    assert fb_result.target_brand == "meta"
+    assert fb_result.matched_term == "faceb00k"
+    assert fb_result.is_phishing_suspect is True
+
+    o365_result = engine.score_domain("office365-security-update.com", all_brands)
+    assert o365_result is not None
+    assert o365_result.target_brand == "microsoft"
+    assert o365_result.matched_term == "office365"
+    assert o365_result.is_phishing_suspect is True
+
+    icloud_result = engine.score_domain("icloud-find-my-iphone-lost.com", all_brands)
+    assert icloud_result is not None
+    assert icloud_result.target_brand == "apple"
+    assert icloud_result.matched_term == "icloud"
+    assert icloud_result.is_phishing_suspect is True

@@ -1,9 +1,10 @@
 import re
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from typing import Iterable, List, Optional, Set, Tuple, Union
 from phishguard.scoring.homoglyph import homoglyph_similarity, normalize_homoglyphs
 from phishguard.scoring.keyboard import keyboard_similarity
 from phishguard.scoring.levenshtein import levenshtein_similarity
 from phishguard.scoring.models import ScoreResult, SignalScores
+from phishguard.watchlist.models import TargetBrand
 
 
 def extract_domain_tokens(domain: str) -> List[str]:
@@ -106,7 +107,12 @@ class ScoringEngine:
         composite = self.compute_composite_score(signals)
         return signals, composite
 
-    def score_domain_against_brand(self, domain: str, brand: str) -> ScoreResult:
+    def score_domain_against_brand(
+        self,
+        domain: str,
+        brand: str,
+        keywords: Optional[Iterable[str]] = None,
+    ) -> ScoreResult:
         tokens = extract_domain_tokens(domain)
         if not tokens:
             empty_signals = SignalScores(0.0, 0.0, 0.0, 0.0)
@@ -119,16 +125,26 @@ class ScoringEngine:
                 is_phishing_suspect=False,
             )
 
+        candidate_terms: List[str] = []
+        seen_terms: Set[str] = set()
+        raw_candidates = [brand, *(keywords or [])]
+        for candidate in raw_candidates:
+            cleaned = candidate.strip().lower()
+            if cleaned and cleaned not in seen_terms:
+                seen_terms.add(cleaned)
+                candidate_terms.append(cleaned)
+
         best_term = tokens[0]
         best_signals = SignalScores(0.0, 0.0, 0.0, 0.0)
         best_composite = 0.0
 
-        for token in tokens:
-            signals, composite = self.evaluate_token(token, brand)
-            if composite > best_composite:
-                best_composite = composite
-                best_signals = signals
-                best_term = token
+        for candidate_term in candidate_terms:
+            for token in tokens:
+                signals, composite = self.evaluate_token(token, candidate_term)
+                if composite > best_composite:
+                    best_composite = composite
+                    best_signals = signals
+                    best_term = token
 
         is_suspect = best_composite >= self.suspect_threshold
         return ScoreResult(
@@ -141,11 +157,16 @@ class ScoringEngine:
         )
 
     def score_domain(
-        self, domain: str, target_brands: Iterable[str]
+        self, domain: str, target_brands: Iterable[Union[str, TargetBrand]]
     ) -> Optional[ScoreResult]:
         best_result: Optional[ScoreResult] = None
-        for brand in target_brands:
-            result = self.score_domain_against_brand(domain, brand)
+        for brand_entry in target_brands:
+            if isinstance(brand_entry, TargetBrand):
+                result = self.score_domain_against_brand(
+                    domain, brand_entry.name, keywords=brand_entry.keywords
+                )
+            else:
+                result = self.score_domain_against_brand(domain, str(brand_entry))
             if best_result is None or result.composite_score > best_result.composite_score:
                 best_result = result
 

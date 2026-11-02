@@ -61,7 +61,7 @@ class PhishGuardService:
             return None
 
         score_result = self.scoring_engine.score_domain(
-            domain, self.watchlist.all_brand_names()
+            domain, self.watchlist.all_brands()
         )
         if not score_result or not score_result.is_phishing_suspect:
             return None

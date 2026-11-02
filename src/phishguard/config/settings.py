@@ -1,7 +1,12 @@
 import os
 from dataclasses import dataclass
 from typing import Optional
-from dotenv import load_dotenv
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(*args, **kwargs) -> bool:
+        return False
 
 
 @dataclass(frozen=True)
