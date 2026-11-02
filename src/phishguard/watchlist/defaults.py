@@ -19,7 +19,7 @@ DEFAULT_TARGET_BRANDS: List[TargetBrand] = [
     ),
     TargetBrand(
         name="microsoft",
-        canonical_domains=["microsoft.com", "live.com", "office.com"],
+        canonical_domains=["microsoft.com", "microsoftonline.com", "live.com", "office.com"],
         keywords=["microsoft", "outlook", "office365"],
     ),
     TargetBrand(

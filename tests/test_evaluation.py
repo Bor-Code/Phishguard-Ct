@@ -69,13 +69,15 @@ def test_evaluation_pipeline_execution():
     samples = [
         DatasetSample("paypa1-security.com", is_phishing=True, target_brand="paypal"),
         DatasetSample("g00gle-login.xyz", is_phishing=True, target_brand="google"),
+        DatasetSample("faceb00k-security-notice.info", is_phishing=True, target_brand="meta"),
+        DatasetSample("office365-security-update.com", is_phishing=True, target_brand="microsoft"),
         DatasetSample("wikipedia.org", is_phishing=False),
         DatasetSample("github.com", is_phishing=False),
         DatasetSample("paypal.com", is_phishing=False),
     ]
 
     report = pipeline.evaluate_samples(samples)
-    assert report.overall_metrics.true_positives >= 2
+    assert report.overall_metrics.true_positives == 4
     assert report.overall_metrics.false_positives == 0
     assert report.overall_metrics.precision == 1.0
     assert report.overall_metrics.recall == 1.0

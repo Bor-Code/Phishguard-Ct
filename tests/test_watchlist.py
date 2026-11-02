@@ -18,13 +18,26 @@ def test_target_brand_legitimate_domain():
     assert brand.is_legitimate_domain("evilpaypal.com") is False
 
 
+def test_target_brand_search_terms():
+    brand = TargetBrand(
+        name="Meta",
+        canonical_domains=["facebook.com", "instagram.com", "meta.com"],
+        keywords=["facebook", "instagram", "meta"],
+    )
+    assert brand.search_terms() == ["meta", "facebook", "instagram"]
+
+
 def test_brand_watchlist_defaults():
     watchlist = BrandWatchlist.from_defaults()
     assert len(watchlist.all_brands()) >= 10
     assert "paypal" in watchlist.all_brand_names()
     assert "google" in watchlist.all_brand_names()
     assert watchlist.is_legitimate_domain("mail.google.com") is True
+    assert watchlist.is_legitimate_domain("login.microsoftonline.com") is True
     assert watchlist.is_legitimate_domain("google-verify.com") is False
+    assert watchlist.resolve_brand_name("facebook") == "meta"
+    assert watchlist.resolve_brand_name("office365") == "microsoft"
+    assert watchlist.resolve_brand_name("icloud") == "apple"
 
 
 def test_brand_watchlist_from_json_file(tmp_path):
@@ -43,6 +56,7 @@ def test_brand_watchlist_from_json_file(tmp_path):
     assert brand is not None
     assert brand.name == "custombank"
     assert "cbank" in watchlist.all_search_terms()
+    assert watchlist.resolve_brand_name("cbank") == "custombank"
     assert watchlist.is_legitimate_for_brand("login.custombank.com", "custombank") is True
 
 

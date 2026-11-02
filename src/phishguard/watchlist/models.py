@@ -8,6 +8,16 @@ class TargetBrand:
     canonical_domains: List[str] = field(default_factory=list)
     keywords: List[str] = field(default_factory=list)
 
+    def search_terms(self) -> List[str]:
+        terms: List[str] = []
+        seen = set()
+        for candidate in [self.name, *self.keywords]:
+            cleaned = candidate.strip().lower()
+            if cleaned and cleaned not in seen:
+                seen.add(cleaned)
+                terms.append(cleaned)
+        return terms
+
     def is_legitimate_domain(self, domain: str) -> bool:
         normalized_domain = domain.strip().lower()
         for canonical in self.canonical_domains:

@@ -16,14 +16,15 @@ class EvaluationPipeline:
         self.watchlist = watchlist or BrandWatchlist.from_defaults()
 
     def evaluate_samples(self, samples: List[DatasetSample]) -> EvaluationReport:
-        target_brands = self.watchlist.all_brand_names()
+        target_brands = self.watchlist.all_brands()
+        brand_names = self.watchlist.all_brand_names()
         true_positives = 0
         false_positives = 0
         true_negatives = 0
         false_negatives = 0
 
         brand_stats: Dict[str, Dict[str, int]] = {
-            brand: {"tp": 0, "fn": 0, "total": 0} for brand in target_brands
+            brand: {"tp": 0, "fn": 0, "total": 0} for brand in brand_names
         }
         flagged_list: List[Dict[str, object]] = []
 
@@ -40,7 +41,9 @@ class EvaluationPipeline:
             )
 
             if sample.is_phishing:
-                matched_brand = score_result.target_brand if score_result else sample.target_brand
+                matched_brand = sample.target_brand or (
+                    score_result.target_brand if score_result else None
+                )
                 if matched_brand and matched_brand in brand_stats:
                     brand_stats[matched_brand]["total"] += 1
                 if is_suspect:

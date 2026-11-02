@@ -28,10 +28,22 @@ class BrandWatchlist:
     def all_search_terms(self) -> List[str]:
         terms: Set[str] = set()
         for brand in self._brands.values():
-            terms.add(brand.name.lower())
-            for keyword in brand.keywords:
-                terms.add(keyword.lower())
+            for term in brand.search_terms():
+                terms.add(term)
         return sorted(terms)
+
+    def term_to_brand_map(self) -> Dict[str, str]:
+        mapping: Dict[str, str] = {}
+        for brand_name, brand in self._brands.items():
+            for term in brand.search_terms():
+                mapping[term] = brand_name
+        return mapping
+
+    def resolve_brand_name(self, term: str) -> Optional[str]:
+        normalized = term.strip().lower()
+        if normalized in self._brands:
+            return normalized
+        return self.term_to_brand_map().get(normalized)
 
     def is_legitimate_for_brand(self, domain: str, brand_name: str) -> bool:
         brand = self.get_brand(brand_name)
