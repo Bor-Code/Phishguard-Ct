@@ -19,6 +19,9 @@ dev = [
     "pytest-asyncio>=0.23.0",
 ]
 
+[project.scripts]
+phishguard = "phishguard.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
