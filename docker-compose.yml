@@ -1,0 +1,17 @@
+services:
+  phishguard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: phishguard-ct
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - DATABASE_PATH=/app/data/phishguard.db
+      - WATCHLIST_PATH=/app/config/brands.json
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./config:/app/config:ro
