@@ -4,6 +4,7 @@ import json
 import logging
 import signal
 import sys
+from phishguard.api.server import run_api_server
 from phishguard.config import Settings
 from phishguard.evaluation.runner import main as run_evaluation
 from phishguard.scoring import ScoringEngine
@@ -45,6 +46,15 @@ def build_parser() -> argparse.ArgumentParser:
     scan_parser.add_argument("--json", action="store_true", help="Output analysis result as JSON")
     scan_parser.add_argument("--save", action="store_true", help="Save suspect result into SQLite database")
     scan_parser.add_argument("--db", default="phishguard.db", help="SQLite database path when using --save")
+
+    serve_parser = subparsers.add_parser(
+        "serve", help="Start HTTP REST API server for healthcheck, stats, and domain queries"
+    )
+    serve_parser.add_argument("--host", default="127.0.0.1", help="Bind host address")
+    serve_parser.add_argument("--port", type=int, default=8080, help="Bind port number")
+    serve_parser.add_argument("--db", default="phishguard.db", help="SQLite database path")
+    serve_parser.add_argument("--watchlist", default=None, help="Path to brands JSON watchlist")
+    serve_parser.add_argument("--with-monitor", action="store_true", help="Run real-time CT monitor alongside API")
 
     eval_parser = subparsers.add_parser(
         "evaluate", help="Run benchmark evaluation against PhishTank and OpenPhish"
@@ -160,6 +170,28 @@ async def handle_scan_command(args: argparse.Namespace) -> None:
         print(f"Risk Factors     : {factors}")
 
 
+async def handle_serve_command(args: argparse.Namespace) -> None:
+    base_settings = Settings.from_env()
+    settings = Settings(
+        certstream_url=base_settings.certstream_url,
+        alert_webhook_url=base_settings.alert_webhook_url,
+        alert_provider=base_settings.alert_provider,
+        telegram_chat_id=base_settings.telegram_chat_id,
+        database_path=args.db or base_settings.database_path,
+        log_level=base_settings.log_level,
+        min_alert_score=base_settings.min_alert_score,
+        watchlist_path=args.watchlist or base_settings.watchlist_path,
+        http_timeout_seconds=base_settings.http_timeout_seconds,
+    )
+    service = PhishGuardService(settings=settings)
+    await run_api_server(
+        host=args.host,
+        port=args.port,
+        service=service,
+        with_monitor=args.with_monitor,
+    )
+
+
 async def run_monitor_service(settings: Settings, max_events: int = 0) -> None:
     service = PhishGuardService(settings=settings)
     stop_event = asyncio.Event()
@@ -217,6 +249,14 @@ def main() -> None:
         asyncio.run(handle_scan_command(args))
         return
 
+    if command == "serve":
+        try:
+            asyncio.run(handle_serve_command(args))
+        except KeyboardInterrupt:
+            logger.info("API server stopped by user.")
+            sys.exit(0)
+        return
+
     base_settings = Settings.from_env()
     certstream_url = getattr(args, "url", None) or base_settings.certstream_url
     webhook_url = getattr(args, "webhook", None) or base_settings.alert_webhook_url
@@ -228,6 +268,8 @@ def main() -> None:
     settings = Settings(
         certstream_url=certstream_url,
         alert_webhook_url=webhook_url,
+        alert_provider=base_settings.alert_provider,
+        telegram_chat_id=base_settings.telegram_chat_id,
         database_path=database_path,
         log_level=base_settings.log_level,
         min_alert_score=min_score,

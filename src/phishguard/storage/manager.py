@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 import sqlite3
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from phishguard.storage.migrations import run_migrations
 from phishguard.storage.models import FlaggedRecord
 
@@ -194,3 +194,25 @@ class DatabaseManager:
         else:
             cursor = connection.execute("SELECT COUNT(*) FROM flagged_domains")
         return cursor.fetchone()[0]
+
+    def get_summary_stats(self) -> Dict[str, Any]:
+        connection = self.connect()
+        total = connection.execute("SELECT COUNT(*) FROM flagged_domains").fetchone()[0]
+        live_count = connection.execute(
+            "SELECT COUNT(*) FROM flagged_domains WHERE is_live = 1"
+        ).fetchone()[0]
+        alerts_sent = connection.execute(
+            "SELECT COUNT(*) FROM flagged_domains WHERE status = 'alert_sent'"
+        ).fetchone()[0]
+
+        brand_rows = connection.execute(
+            "SELECT target_brand, COUNT(*) AS cnt FROM flagged_domains GROUP BY target_brand ORDER BY cnt DESC"
+        ).fetchall()
+        by_brand = {row["target_brand"]: int(row["cnt"]) for row in brand_rows}
+
+        return {
+            "total_flagged": int(total),
+            "live_domains": int(live_count),
+            "alerts_sent": int(alerts_sent),
+            "by_brand": by_brand,
+        }
