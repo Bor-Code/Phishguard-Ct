@@ -10,6 +10,11 @@ from phishguard.verification import (
     detect_password_inputs,
     extract_page_title,
     is_free_automated_ca,
+    analyze_domain_structure,
+    count_domain_hyphens,
+    extract_tld,
+    has_excessive_hyphens,
+    is_suspicious_tld,
 )
 
 
@@ -142,3 +147,16 @@ async def test_domain_verifier_unreachable_host():
     assert result.is_reachable is False
     assert result.status_code is None
     assert result.content.has_password_input is False
+
+
+def test_domain_structural_heuristics():
+    assert extract_tld("g00gle-accounts-verification.xyz") == "xyz"
+    assert is_suspicious_tld("g00gle-accounts-verification.xyz") is True
+    assert is_suspicious_tld("paypal.com") is False
+    assert count_domain_hyphens("paypa1-security-verification.com") == 2
+    assert has_excessive_hyphens("paypa1-security-verification.com") is True
+    assert has_excessive_hyphens("paypal.com") is False
+
+    factors = analyze_domain_structure("g00gle-accounts-verification.xyz")
+    assert "suspicious_tld" in factors
+    assert "excessive_hyphens" in factors

@@ -3,6 +3,14 @@ from phishguard.verification.certificate import (
     calculate_cert_age_hours,
     is_free_automated_ca,
 )
+from phishguard.verification.domain_heuristics import (
+    SUSPICIOUS_TLDS,
+    analyze_domain_structure,
+    count_domain_hyphens,
+    extract_tld,
+    has_excessive_hyphens,
+    is_suspicious_tld,
+)
 from phishguard.verification.heuristics import (
     analyze_html_content,
     detect_login_forms,
@@ -21,9 +29,15 @@ __all__ = [
     "VerificationResult",
     "CertificateMetadata",
     "ContentAnalysis",
+    "SUSPICIOUS_TLDS",
     "analyze_certificate",
     "calculate_cert_age_hours",
     "is_free_automated_ca",
+    "analyze_domain_structure",
+    "count_domain_hyphens",
+    "extract_tld",
+    "has_excessive_hyphens",
+    "is_suspicious_tld",
     "analyze_html_content",
     "detect_password_inputs",
     "detect_login_forms",

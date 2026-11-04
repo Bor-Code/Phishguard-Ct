@@ -1,4 +1,3 @@
-import asyncio
 from typing import Any, List, Optional
 
 try:
@@ -7,6 +6,7 @@ except ImportError:
     aiohttp = None  # type: ignore[assignment]
 
 from phishguard.verification.certificate import analyze_certificate
+from phishguard.verification.domain_heuristics import analyze_domain_structure
 from phishguard.verification.heuristics import analyze_html_content
 from phishguard.verification.models import (
     CertificateMetadata,
@@ -49,9 +49,13 @@ class DomainVerifier:
             return None
 
     def _compile_risk_factors(
-        self, cert_meta: CertificateMetadata, content: ContentAnalysis, is_live: bool
+        self,
+        domain: str,
+        cert_meta: CertificateMetadata,
+        content: ContentAnalysis,
+        is_live: bool,
     ) -> List[str]:
-        factors: List[str] = []
+        factors: List[str] = analyze_domain_structure(domain)
         if is_live:
             factors.append("host_reachable")
         if cert_meta.is_newly_issued:
@@ -67,9 +71,18 @@ class DomainVerifier:
         return factors
 
     def _calculate_multiplier(
-        self, cert_meta: CertificateMetadata, content: ContentAnalysis, is_live: bool
+        self,
+        domain: str,
+        cert_meta: CertificateMetadata,
+        content: ContentAnalysis,
+        is_live: bool,
     ) -> float:
         multiplier = 1.0
+        structural_factors = analyze_domain_structure(domain)
+        if "suspicious_tld" in structural_factors:
+            multiplier += 0.05
+        if "excessive_hyphens" in structural_factors:
+            multiplier += 0.05
         if is_live:
             multiplier += 0.05
         if cert_meta.is_newly_issued:
@@ -112,8 +125,8 @@ class DomainVerifier:
             content = ContentAnalysis()
             is_live = False
 
-        factors = self._compile_risk_factors(cert_meta, content, is_live)
-        multiplier = self._calculate_multiplier(cert_meta, content, is_live)
+        factors = self._compile_risk_factors(domain, cert_meta, content, is_live)
+        multiplier = self._calculate_multiplier(domain, cert_meta, content, is_live)
 
         return VerificationResult(
             domain=domain,
