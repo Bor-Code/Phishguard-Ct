@@ -129,3 +129,18 @@ def test_update_status_and_count():
         assert stats["live_domains"] == 1
         assert stats["alerts_sent"] == 1
         assert stats["by_brand"]["paypal"] == 1
+
+
+def test_export_flagged_json_and_csv(tmp_path):
+    with DatabaseManager(database_path=":memory:") as db:
+        db.record_detection(create_sample_record("paypa1-security.com", "paypal", 0.90))
+        json_out = tmp_path / "export.json"
+        csv_out = tmp_path / "export.csv"
+
+        db.export_flagged(json_out, fmt="json")
+        db.export_flagged(csv_out, fmt="csv")
+
+        assert json_out.is_file()
+        assert "paypa1-security.com" in json_out.read_text(encoding="utf-8")
+        assert csv_out.is_file()
+        assert "paypa1-security.com" in csv_out.read_text(encoding="utf-8")

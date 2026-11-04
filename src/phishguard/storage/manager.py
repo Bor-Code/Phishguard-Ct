@@ -1,3 +1,4 @@
+import csv
 import json
 from pathlib import Path
 import sqlite3
@@ -214,5 +215,67 @@ class DatabaseManager:
             "total_flagged": int(total),
             "live_domains": int(live_count),
             "alerts_sent": int(alerts_sent),
+            "by_brand": by_brand,
+        }
+
+    def export_flagged(
+        self,
+        output_path: Union[str, Path],
+        fmt: str = "json",
+        min_score: float = 0.0,
+        target_brand: Optional[str] = None,
+        limit: int = 1000,
+    ) -> Path:
+        records = self.list_flagged(
+            min_score=min_score,
+            target_brand=target_brand,
+            limit=limit,
+        )
+        dest = Path(output_path)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        normalized_fmt = fmt.strip().lower()
+
+        rows = [
+            {
+                "id": r.id,
+                "domain": r.domain,
+                "target_brand": r.target_brand,
+                "matched_term": r.matched_term,
+                "composite_score": r.composite_score,
+                "final_confidence_score": r.final_confidence_score,
+                "is_live": r.is_live,
+                "http_status": r.http_status,
+                "cert_issuer": r.cert_issuer,
+                "status": r.status,
+                "risk_factors": ",".join(r.risk_factors),
+                "detected_at": r.detected_at,
+            }
+            for r in records
+        ]
+
+        if normalized_fmt == "csv":
+            fieldnames = [
+                "id",
+                "domain",
+                "target_brand",
+                "matched_term",
+                "composite_score",
+                "final_confidence_score",
+                "is_live",
+                "http_status",
+                "cert_issuer",
+                "status",
+                "risk_factors",
+                "detected_at",
+            ]
+            with dest.open("w", encoding="utf-8", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(rows)
+        else:
+            dest.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+
+        return dest
+        _unused = {
             "by_brand": by_brand,
         }
