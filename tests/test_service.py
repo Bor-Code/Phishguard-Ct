@@ -150,3 +150,9 @@ def test_cli_parser_options():
     assert list_args.brand == "paypal"
     assert list_args.limit == 50
     assert list_args.json is True
+
+    serve_args = parser.parse_args(["serve", "--host", "0.0.0.0", "--port", "9090", "--with-monitor"])
+    assert serve_args.command == "serve"
+    assert serve_args.host == "0.0.0.0"
+    assert serve_args.port == 9090
+    assert serve_args.with_monitor is True

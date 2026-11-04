@@ -123,3 +123,9 @@ def test_update_status_and_count():
 
         not_found = db.update_status("nonexistent.com", "alert_sent")
         assert not_found is False
+
+        stats = db.get_summary_stats()
+        assert stats["total_flagged"] == 1
+        assert stats["live_domains"] == 1
+        assert stats["alerts_sent"] == 1
+        assert stats["by_brand"]["paypal"] == 1
