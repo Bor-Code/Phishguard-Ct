@@ -120,6 +120,22 @@ def render_dashboard_html() -> str:
       font-size: 0.9rem;
     }}
     button:hover {{ opacity: 0.9; }}
+    .btn-sm {{
+      padding: 0.25rem 0.6rem;
+      font-size: 0.75rem;
+      border-radius: 0.3rem;
+      margin-right: 0.3rem;
+    }}
+    .btn-confirm {{
+      background: rgba(244, 63, 94, 0.2);
+      color: var(--danger);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+    }}
+    .btn-dismiss {{
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--text-muted);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }}
     .scan-options {{
       display: flex;
       gap: 1.25rem;
@@ -243,6 +259,13 @@ def render_dashboard_html() -> str:
       <h2 style="margin-bottom: 0;">Flagged Phishing Domains</h2>
       <div style="display: flex; gap: 0.5rem;">
         <input type="text" id="filter-brand" placeholder="Filter by brand..." style="max-width: 180px;" />
+        <select id="filter-status" style="max-width: 160px;">
+          <option value="">All Statuses</option>
+          <option value="flagged">flagged</option>
+          <option value="alert_sent">alert_sent</option>
+          <option value="confirmed">confirmed</option>
+          <option value="dismissed">dismissed</option>
+        </select>
         <button onclick="loadDomains()">Filter</button>
       </div>
     </div>
@@ -255,10 +278,11 @@ def render_dashboard_html() -> str:
           <th>Confidence</th>
           <th>Reachable</th>
           <th>Status</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody id="domains-tbody">
-        <tr><td colspan="6" style="color: var(--text-muted);">No detections loaded.</td></tr>
+        <tr><td colspan="7" style="color: var(--text-muted);">No detections loaded.</td></tr>
       </tbody>
     </table>
   </section>
@@ -292,12 +316,16 @@ def render_dashboard_html() -> str:
 
     async function loadDomains() {{
       const brand = document.getElementById('filter-brand').value.trim();
-      const query = brand ? `?brand=${{encodeURIComponent(brand)}}` : '';
+      const status = document.getElementById('filter-status').value;
+      const params = new URLSearchParams();
+      if (brand) params.set('brand', brand);
+      if (status) params.set('status', status);
+      const query = params.toString() ? `?${{params.toString()}}` : '';
       const res = await fetch('/domains' + query);
       const data = await res.json();
       const tbody = document.getElementById('domains-tbody');
       if (!data.items || data.items.length === 0) {{
-        tbody.innerHTML = '<tr><td colspan="6" style="color: var(--text-muted);">No flagged domains matching criteria.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="color: var(--text-muted);">No flagged domains matching criteria.</td></tr>';
         return;
       }}
       tbody.innerHTML = data.items.map(item => `
@@ -308,8 +336,21 @@ def render_dashboard_html() -> str:
           <td><strong>${{item.final_confidence_score.toFixed(4)}}</strong></td>
           <td><span class="status-pill ${{item.is_live ? 'pill-danger' : 'pill-success'}}">${{item.is_live ? 'YES' : 'NO'}}</span></td>
           <td>${{item.status}}</td>
+          <td>
+            <button class="btn-sm btn-confirm" onclick="updateDomainStatus('${{item.domain}}', 'confirmed')">Confirm</button>
+            <button class="btn-sm btn-dismiss" onclick="updateDomainStatus('${{item.domain}}', 'dismissed')">Dismiss</button>
+          </td>
         </tr>
       `).join('');
+    }}
+
+    async function updateDomainStatus(domain, status) {{
+      await fetch(`/domains/${{encodeURIComponent(domain)}}`, {{
+        method: 'PATCH',
+        headers: {{ 'Content-Type': 'application/json' }},
+        body: JSON.stringify({{ status }})
+      }});
+      refreshAll();
     }}
 
     async function runScan() {{
