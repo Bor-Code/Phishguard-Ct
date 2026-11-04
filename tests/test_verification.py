@@ -15,6 +15,8 @@ from phishguard.verification import (
     extract_tld,
     has_excessive_hyphens,
     is_suspicious_tld,
+    resolve_domain_ips,
+    resolve_domain_ips_sync,
 )
 
 
@@ -160,3 +162,15 @@ def test_domain_structural_heuristics():
     factors = analyze_domain_structure("g00gle-accounts-verification.xyz")
     assert "suspicious_tld" in factors
     assert "excessive_hyphens" in factors
+
+
+@pytest.mark.asyncio
+async def test_dns_ip_resolution():
+    sync_ips = resolve_domain_ips_sync("127.0.0.1:8080")
+    assert "127.0.0.1" in sync_ips
+
+    async_ips = await resolve_domain_ips("127.0.0.1")
+    assert "127.0.0.1" in async_ips
+
+    empty_ips = await resolve_domain_ips("")
+    assert empty_ips == []

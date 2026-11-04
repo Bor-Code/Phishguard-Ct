@@ -31,3 +31,4 @@ class VerificationResult:
     content: ContentAnalysis = field(default_factory=ContentAnalysis)
     confidence_multiplier: float = 1.0
     risk_factors: List[str] = field(default_factory=list)
+    resolved_ips: List[str] = field(default_factory=list)

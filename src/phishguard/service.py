@@ -114,6 +114,7 @@ class PhishGuardService:
                 "has_login_form": verification.content.has_login_form,
                 "confidence_multiplier": verification.confidence_multiplier,
                 "risk_factors": verification.risk_factors,
+                "resolved_ips": verification.resolved_ips,
             }
 
             if persist and is_suspect:

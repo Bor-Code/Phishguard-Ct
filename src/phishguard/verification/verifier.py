@@ -6,6 +6,7 @@ except ImportError:
     aiohttp = None  # type: ignore[assignment]
 
 from phishguard.verification.certificate import analyze_certificate
+from phishguard.verification.dns import resolve_domain_ips
 from phishguard.verification.domain_heuristics import analyze_domain_structure
 from phishguard.verification.heuristics import analyze_html_content
 from phishguard.verification.models import (
@@ -54,8 +55,11 @@ class DomainVerifier:
         cert_meta: CertificateMetadata,
         content: ContentAnalysis,
         is_live: bool,
+        resolved_ips: Optional[List[str]] = None,
     ) -> List[str]:
         factors: List[str] = analyze_domain_structure(domain)
+        if resolved_ips:
+            factors.append("dns_record_active")
         if is_live:
             factors.append("host_reachable")
         if cert_meta.is_newly_issued:
@@ -108,6 +112,9 @@ class DomainVerifier:
             not_before=not_before,
             not_after=not_after,
         )
+        resolved_ips = await resolve_domain_ips(
+            domain, timeout_seconds=min(2.0, self.timeout_seconds)
+        )
 
         fetch_result = None
         if aiohttp is not None:
@@ -125,7 +132,9 @@ class DomainVerifier:
             content = ContentAnalysis()
             is_live = False
 
-        factors = self._compile_risk_factors(domain, cert_meta, content, is_live)
+        factors = self._compile_risk_factors(
+            domain, cert_meta, content, is_live, resolved_ips=resolved_ips
+        )
         multiplier = self._calculate_multiplier(domain, cert_meta, content, is_live)
 
         return VerificationResult(
@@ -137,4 +146,5 @@ class DomainVerifier:
             content=content,
             confidence_multiplier=multiplier,
             risk_factors=factors,
+            resolved_ips=resolved_ips,
         )
