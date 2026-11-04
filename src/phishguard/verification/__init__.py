@@ -3,6 +3,10 @@ from phishguard.verification.certificate import (
     calculate_cert_age_hours,
     is_free_automated_ca,
 )
+from phishguard.verification.dns import (
+    resolve_domain_ips,
+    resolve_domain_ips_sync,
+)
 from phishguard.verification.domain_heuristics import (
     SUSPICIOUS_TLDS,
     analyze_domain_structure,
@@ -33,6 +37,8 @@ __all__ = [
     "analyze_certificate",
     "calculate_cert_age_hours",
     "is_free_automated_ca",
+    "resolve_domain_ips",
+    "resolve_domain_ips_sync",
     "analyze_domain_structure",
     "count_domain_hyphens",
     "extract_tld",
