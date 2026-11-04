@@ -116,6 +116,7 @@ phishguard serve --host 0.0.0.0 --port 8080 --with-monitor
 ```
 
 Available HTTP Endpoints:
+- `GET /` or `GET /dashboard` — Interactive dark-mode SOC Web Dashboard & Live Domain Analyzer
 - `GET /health` — Service health status and version
 - `GET /stats` — Summary counts (`total_flagged`, `live_domains`, `alerts_sent`, `by_brand`)
 - `GET /domains?brand=paypal&min_score=0.80&limit=50` — Filtered list of flagged domains
