@@ -1,7 +1,9 @@
 import argparse
 import asyncio
+import csv
 import json
 import logging
+from pathlib import Path
 import signal
 import sys
 from phishguard.api.server import run_api_server
@@ -46,6 +48,28 @@ def build_parser() -> argparse.ArgumentParser:
     scan_parser.add_argument("--json", action="store_true", help="Output analysis result as JSON")
     scan_parser.add_argument("--save", action="store_true", help="Save suspect result into SQLite database")
     scan_parser.add_argument("--db", default="phishguard.db", help="SQLite database path when using --save")
+
+    batch_parser = subparsers.add_parser(
+        "batch", help="Analyze a list of domains or URLs from a text file"
+    )
+    batch_parser.add_argument("input_file", help="Path to text file with one domain/URL per line")
+    batch_parser.add_argument("--output", default=None, help="Optional output file path (.json or .csv)")
+    batch_parser.add_argument("--watchlist", default=None, help="Path to brands JSON watchlist")
+    batch_parser.add_argument("--threshold", type=float, default=0.75, help="Suspect score threshold")
+    batch_parser.add_argument("--verify", action="store_true", help="Enable active HTTP/TLS verification probe")
+    batch_parser.add_argument("--save", action="store_true", help="Persist suspect results into SQLite database")
+    batch_parser.add_argument("--db", default="phishguard.db", help="SQLite database path when using --save")
+    batch_parser.add_argument("--concurrency", type=int, default=10, help="Maximum concurrent checks")
+
+    export_parser = subparsers.add_parser(
+        "export", help="Export flagged phishing records from SQLite database to JSON or CSV"
+    )
+    export_parser.add_argument("output_file", help="Destination file path for exported records")
+    export_parser.add_argument("--format", choices=["json", "csv"], default="json", help="Export file format")
+    export_parser.add_argument("--db", default="phishguard.db", help="SQLite database path")
+    export_parser.add_argument("--min-score", type=float, default=0.0, help="Minimum confidence score filter")
+    export_parser.add_argument("--brand", default=None, help="Target brand filter")
+    export_parser.add_argument("--limit", type=int, default=1000, help="Maximum records to export")
 
     serve_parser = subparsers.add_parser(
         "serve", help="Start HTTP REST API server for healthcheck, stats, and domain queries"
@@ -115,6 +139,81 @@ def handle_list_command(args: argparse.Namespace) -> None:
     for r in records:
         live_str = "YES" if r.is_live else "NO"
         print(f"{r.domain:<35} {r.target_brand:<12} {r.final_confidence_score:<8.4f} {live_str:<6} {r.status:<12}")
+
+
+def handle_export_command(args: argparse.Namespace) -> None:
+    db = DatabaseManager(database_path=args.db)
+    db.initialize()
+    try:
+        dest = db.export_flagged(
+            output_path=args.output_file,
+            fmt=args.format,
+            min_score=args.min_score,
+            target_brand=args.brand,
+            limit=args.limit,
+        )
+    finally:
+        db.close()
+    print(f"Exported flagged records to {dest}")
+
+
+async def handle_batch_command(args: argparse.Namespace) -> None:
+    input_path = Path(args.input_file)
+    if not input_path.is_file():
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+
+    lines = input_path.read_text(encoding="utf-8").splitlines()
+    watchlist = (
+        BrandWatchlist.from_json_file(args.watchlist)
+        if args.watchlist
+        else BrandWatchlist.from_defaults()
+    )
+    scoring_engine = ScoringEngine(suspect_threshold=args.threshold)
+    database = DatabaseManager(database_path=args.db)
+
+    service = PhishGuardService(
+        watchlist=watchlist,
+        scoring_engine=scoring_engine,
+        database=database,
+    )
+    try:
+        results = await service.batch_inspect_domains(
+            domains=lines,
+            verify=args.verify,
+            persist=args.save,
+            concurrency=args.concurrency,
+        )
+    finally:
+        database.close()
+
+    if args.output:
+        out_path = Path(args.output)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        if out_path.suffix.lower() == ".csv":
+            fieldnames = [
+                "domain",
+                "is_legitimate",
+                "is_phishing_suspect",
+                "target_brand",
+                "matched_term",
+                "composite_score",
+                "final_confidence_score",
+            ]
+            with out_path.open("w", encoding="utf-8", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                for item in results:
+                    writer.writerow({k: item.get(k) for k in fieldnames})
+        else:
+            out_path.write_text(json.dumps(results, indent=2), encoding="utf-8")
+        print(f"Batch scan complete ({len(results)} domains). Saved to {out_path}")
+        return
+
+    suspect_count = sum(1 for r in results if r["is_phishing_suspect"])
+    print(f"Batch Scan Summary: {len(results)} scanned | {suspect_count} phishing suspects")
+    for r in results:
+        if r["is_phishing_suspect"]:
+            print(f"  [SUSPECT] {r['domain']} -> brand={r['target_brand']} score={r['final_confidence_score']:.4f}")
 
 
 async def handle_scan_command(args: argparse.Namespace) -> None:
@@ -243,6 +342,14 @@ def main() -> None:
 
     if command == "list":
         handle_list_command(args)
+        return
+
+    if command == "export":
+        handle_export_command(args)
+        return
+
+    if command == "batch":
+        asyncio.run(handle_batch_command(args))
         return
 
     if command == "scan":

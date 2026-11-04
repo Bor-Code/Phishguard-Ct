@@ -126,6 +126,13 @@ Available HTTP Endpoints:
 # Example health check
 curl http://localhost:8080/health
 ```
+
+### 6. Batch Scan & Database Export
+
+```bash
+phishguard batch data/benchmarks/openphish_sample.txt --output reports/batch_results.json
+phishguard export reports/flagged_domains.csv --format csv --min-score 0.80
+```
 ```
 
 ---

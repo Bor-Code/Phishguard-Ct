@@ -98,6 +98,16 @@ async def test_service_inspect_domain():
     assert legit_res["is_phishing_suspect"] is False
     assert legit_res["final_confidence_score"] == 0.0
 
+    batch_res = await service.batch_inspect_domains(
+        ["paypa1-secure-center.com", "wikipedia.org", "paypal.com"],
+        verify=False,
+        persist=False,
+    )
+    assert len(batch_res) == 3
+    assert batch_res[0]["is_phishing_suspect"] is True
+    assert batch_res[1]["is_phishing_suspect"] is False
+    assert batch_res[2]["is_legitimate"] is True
+
 
 @pytest.mark.asyncio
 async def test_service_start_and_consume():
@@ -156,3 +166,15 @@ def test_cli_parser_options():
     assert serve_args.host == "0.0.0.0"
     assert serve_args.port == 9090
     assert serve_args.with_monitor is True
+
+    batch_args = parser.parse_args(["batch", "domains.txt", "--output", "out.json", "--concurrency", "5"])
+    assert batch_args.command == "batch"
+    assert batch_args.input_file == "domains.txt"
+    assert batch_args.output == "out.json"
+    assert batch_args.concurrency == 5
+
+    export_args = parser.parse_args(["export", "flagged.csv", "--format", "csv", "--brand", "paypal"])
+    assert export_args.command == "export"
+    assert export_args.output_file == "flagged.csv"
+    assert export_args.format == "csv"
+    assert export_args.brand == "paypal"

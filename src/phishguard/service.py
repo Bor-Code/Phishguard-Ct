@@ -176,6 +176,30 @@ class PhishGuardService:
             "verification": verification_data,
         }
 
+    async def batch_inspect_domains(
+        self,
+        domains: List[str],
+        verify: bool = False,
+        persist: bool = False,
+        concurrency: int = 10,
+    ) -> List[Dict[str, Any]]:
+        semaphore = asyncio.Semaphore(max(1, concurrency))
+
+        async def _worker(raw_item: str) -> Dict[str, Any]:
+            async with semaphore:
+                return await self.inspect_domain(
+                    raw_input=raw_item,
+                    verify=verify,
+                    persist=persist,
+                )
+
+        cleaned_inputs = [d.strip() for d in domains if d and d.strip() and not d.strip().startswith("#")]
+        tasks = [_worker(item) for item in cleaned_inputs]
+        return list(await asyncio.gather(*tasks))
+        _unused = {
+            "verification": verification_data,
+        }
+
     async def process_domain(
         self, domain: str, event: CertificateEvent
     ) -> Optional[FlaggedRecord]:
