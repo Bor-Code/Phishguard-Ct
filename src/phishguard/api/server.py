@@ -8,6 +8,7 @@ except ImportError:
     web = None  # type: ignore[assignment]
 
 from phishguard import __version__
+from phishguard.api.dashboard import render_dashboard_html
 from phishguard.service import PhishGuardService
 from phishguard.storage.models import FlaggedRecord
 
@@ -49,6 +50,9 @@ class PhishGuardAPIServer:
     def __init__(self, service: Optional[PhishGuardService] = None) -> None:
         self.service = service or PhishGuardService()
         self.service.database.initialize()
+
+    def get_dashboard_html(self) -> str:
+        return render_dashboard_html()
 
     def get_health(self) -> Dict[str, Any]:
         return {
@@ -102,6 +106,9 @@ def create_api_app(service: Optional[PhishGuardService] = None) -> Any:
 
     api = PhishGuardAPIServer(service=service)
 
+    async def handle_dashboard(request: web.Request) -> web.Response:
+        return web.Response(text=api.get_dashboard_html(), content_type="text/html")
+
     async def handle_health(request: web.Request) -> web.Response:
         return web.json_response(api.get_health())
 
@@ -152,6 +159,8 @@ def create_api_app(service: Optional[PhishGuardService] = None) -> Any:
 
     app = web.Application()
     app["phishguard_api"] = api
+    app.router.add_get("/", handle_dashboard)
+    app.router.add_get("/dashboard", handle_dashboard)
     app.router.add_get("/health", handle_health)
     app.router.add_get("/stats", handle_stats)
     app.router.add_get("/domains", handle_list_domains)
@@ -175,7 +184,7 @@ async def run_api_server(
     await runner.setup()
     site = web.TCPSite(runner, host, port)
     await site.start()
-    logger.info("PhishGuard REST API listening on http://%s:%d", host, port)
+    logger.info("PhishGuard REST API & Dashboard listening on http://%s:%d", host, port)
 
     monitor_task: Optional[asyncio.Task] = None
     if with_monitor:

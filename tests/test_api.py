@@ -61,6 +61,10 @@ async def test_api_server_methods():
     assert health["status"] == "ok"
     assert health["service"] == "phishguard-ct"
 
+    html = api.get_dashboard_html()
+    assert "PhishGuard-CT SOC Console" in html
+    assert "On-Demand Domain Analyzer" in html
+
     stats = api.get_stats()
     assert stats["total_flagged"] == 1
     assert stats["live_domains"] == 1
@@ -96,6 +100,11 @@ async def test_api_http_endpoints(unused_tcp_port):
     base_url = f"http://127.0.0.1:{unused_tcp_port}"
     try:
         async with aiohttp.ClientSession() as session:
+            async with session.get(f"{base_url}/") as resp:
+                assert resp.status == 200
+                text = await resp.text()
+                assert "PhishGuard-CT SOC Console" in text
+
             async with session.get(f"{base_url}/health") as resp:
                 assert resp.status == 200
                 data = await resp.json()
