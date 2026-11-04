@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from phishguard.service import PhishGuardService
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __all__ = ["PhishGuardService", "__version__"]
 
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "phishguard"
-version = "0.1.0"
+version = "1.0.0"
 description = "Phishing domain detection using Certificate Transparency logs and multi-signal scoring"
 requires-python = ">=3.11"
 dependencies = [
