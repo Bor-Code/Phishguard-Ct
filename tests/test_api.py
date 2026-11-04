@@ -81,6 +81,14 @@ async def test_api_server_methods():
     assert detail["target_brand"] == "paypal"
     assert api.get_domain_detail("unknown-domain.org") is None
 
+    updated = api.update_domain_status("paypa1-security.com", "confirmed")
+    assert updated is not None
+    assert updated["status"] == "confirmed"
+    assert api.update_domain_status("unknown-domain.org", "dismissed") is None
+
+    with pytest.raises(ValueError):
+        api.update_domain_status("paypa1-security.com", "invalid_status")
+
     scan_result = await api.scan_domain("g00gle-verify.xyz", verify=True, save=True)
     assert scan_result["is_phishing_suspect"] is True
     assert scan_result["target_brand"] == "google"
@@ -127,6 +135,26 @@ async def test_api_http_endpoints(unused_tcp_port):
                 assert detail["domain"] == "paypa1-security.com"
 
             async with session.get(f"{base_url}/domains/missing.com") as resp:
+                assert resp.status == 404
+
+            async with session.patch(
+                f"{base_url}/domains/paypa1-security.com",
+                json={"status": "confirmed"},
+            ) as resp:
+                assert resp.status == 200
+                patched = await resp.json()
+                assert patched["status"] == "confirmed"
+
+            async with session.patch(
+                f"{base_url}/domains/paypa1-security.com",
+                json={"status": "not_allowed"},
+            ) as resp:
+                assert resp.status == 400
+
+            async with session.patch(
+                f"{base_url}/domains/missing.com",
+                json={"status": "dismissed"},
+            ) as resp:
                 assert resp.status == 404
 
             async with session.post(

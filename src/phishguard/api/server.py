@@ -14,6 +14,8 @@ from phishguard.storage.models import FlaggedRecord
 
 logger = logging.getLogger("phishguard.api")
 
+ALLOWED_DOMAIN_STATUSES = {"flagged", "confirmed", "dismissed", "alert_sent"}
+
 
 def serialize_record(record: FlaggedRecord) -> Dict[str, Any]:
     return {
@@ -87,6 +89,18 @@ class PhishGuardAPIServer:
             return None
         return serialize_record(record)
 
+    def update_domain_status(self, domain: str, status: str) -> Optional[Dict[str, Any]]:
+        normalized_domain = domain.strip().lower()
+        normalized_status = status.strip().lower()
+        if normalized_status not in ALLOWED_DOMAIN_STATUSES:
+            raise ValueError(
+                f"Invalid status '{status}'. Allowed values: {sorted(ALLOWED_DOMAIN_STATUSES)}"
+            )
+        updated = self.service.database.update_status(normalized_domain, normalized_status)
+        if not updated:
+            return None
+        return self.get_domain_detail(normalized_domain)
+
     async def scan_domain(
         self,
         domain: str,
@@ -142,6 +156,26 @@ def create_api_app(service: Optional[PhishGuardService] = None) -> Any:
             return web.json_response({"error": "Domain not found"}, status=404)
         return web.json_response(detail)
 
+    async def handle_update_domain_status(request: web.Request) -> web.Response:
+        domain = request.match_info.get("domain", "")
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+        new_status = str(body.get("status", "")).strip()
+        if not new_status:
+            return web.json_response({"error": "'status' field is required"}, status=400)
+
+        try:
+            updated = api.update_domain_status(domain=domain, status=new_status)
+        except ValueError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+
+        if updated is None:
+            return web.json_response({"error": "Domain not found"}, status=404)
+        return web.json_response(updated)
+
     async def handle_scan(request: web.Request) -> web.Response:
         try:
             body = await request.json()
@@ -165,6 +199,7 @@ def create_api_app(service: Optional[PhishGuardService] = None) -> Any:
     app.router.add_get("/stats", handle_stats)
     app.router.add_get("/domains", handle_list_domains)
     app.router.add_get("/domains/{domain}", handle_get_domain)
+    app.router.add_patch("/domains/{domain}", handle_update_domain_status)
     app.router.add_post("/scan", handle_scan)
     return app
 
