@@ -64,13 +64,26 @@ async def test_api_server_methods():
     html = api.get_dashboard_html()
     assert "PhishGuard-CT SOC Console" in html
     assert "On-Demand Domain Analyzer" in html
+    assert "Triage Status Breakdown" in html
+    assert "Bulk Domain Threat Analyzer" in html
 
     stats = api.get_stats()
     assert stats["total_flagged"] == 1
     assert stats["live_domains"] == 1
     assert stats["alerts_sent"] == 1
     assert stats["by_brand"]["paypal"] == 1
+    assert stats["by_status"]["alert_sent"] == 1
+    assert stats["severity_buckets"]["critical"] == 1
+    assert "levenshtein" in stats["signal_averages"]
     assert stats["watchlist_brands_count"] >= 10
+
+    watchlist = api.get_watchlist()
+    assert watchlist["count"] >= 10
+    assert any(b["name"] == "paypal" for b in watchlist["brands"])
+
+    csv_payload, csv_type = api.export_domains(fmt="csv")
+    assert "text/csv" in csv_type
+    assert "paypa1-security.com" in csv_payload
 
     domains = api.list_domains(brand="paypal")
     assert len(domains) == 1
@@ -93,6 +106,12 @@ async def test_api_server_methods():
     assert scan_result["is_phishing_suspect"] is True
     assert scan_result["target_brand"] == "google"
     assert api.get_stats()["total_flagged"] == 2
+
+    batch_result = await api.batch_scan_domains(
+        ["micr0soft-login.top", "example.org"], verify=False, save=True
+    )
+    assert batch_result["total_scanned"] == 2
+    assert batch_result["suspects_detected"] >= 1
     service.database.close()
 
 
@@ -122,6 +141,17 @@ async def test_api_http_endpoints(unused_tcp_port):
                 assert resp.status == 200
                 stats = await resp.json()
                 assert stats["total_flagged"] == 1
+                assert "severity_buckets" in stats
+
+            async with session.get(f"{base_url}/watchlist") as resp:
+                assert resp.status == 200
+                wl = await resp.json()
+                assert wl["count"] >= 10
+
+            async with session.get(f"{base_url}/export?format=csv") as resp:
+                assert resp.status == 200
+                csv_text = await resp.text()
+                assert "paypa1-security.com" in csv_text
 
             async with session.get(f"{base_url}/domains?brand=paypal") as resp:
                 assert resp.status == 200
@@ -165,6 +195,15 @@ async def test_api_http_endpoints(unused_tcp_port):
                 scan_data = await resp.json()
                 assert scan_data["is_phishing_suspect"] is True
                 assert scan_data["target_brand"] == "meta"
+
+            async with session.post(
+                f"{base_url}/batch-scan",
+                json={"domains": ["paypa1-help.xyz", "google.com"], "verify": False, "save": False},
+            ) as resp:
+                assert resp.status == 200
+                batch_data = await resp.json()
+                assert batch_data["total_scanned"] == 2
+                assert batch_data["suspects_detected"] == 1
     finally:
         await runner.cleanup()
         service.database.close()

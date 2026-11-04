@@ -211,11 +211,49 @@ class DatabaseManager:
         ).fetchall()
         by_brand = {row["target_brand"]: int(row["cnt"]) for row in brand_rows}
 
+        status_rows = connection.execute(
+            "SELECT status, COUNT(*) AS cnt FROM flagged_domains GROUP BY status"
+        ).fetchall()
+        by_status = {row["status"]: int(row["cnt"]) for row in status_rows}
+
+        critical_cnt = connection.execute(
+            "SELECT COUNT(*) FROM flagged_domains WHERE final_confidence_score >= 0.90"
+        ).fetchone()[0]
+        high_cnt = connection.execute(
+            "SELECT COUNT(*) FROM flagged_domains WHERE final_confidence_score >= 0.75 AND final_confidence_score < 0.90"
+        ).fetchone()[0]
+        medium_cnt = connection.execute(
+            "SELECT COUNT(*) FROM flagged_domains WHERE final_confidence_score < 0.75"
+        ).fetchone()[0]
+
+        avg_row = connection.execute(
+            """
+            SELECT
+                COALESCE(AVG(score_levenshtein), 0.0) AS avg_lev,
+                COALESCE(AVG(score_keyboard), 0.0) AS avg_kbd,
+                COALESCE(AVG(score_homoglyph), 0.0) AS avg_hom,
+                COALESCE(AVG(score_affix), 0.0) AS avg_aff
+            FROM flagged_domains
+            """
+        ).fetchone()
+
         return {
             "total_flagged": int(total),
             "live_domains": int(live_count),
             "alerts_sent": int(alerts_sent),
             "by_brand": by_brand,
+            "by_status": by_status,
+            "severity_buckets": {
+                "critical": int(critical_cnt),
+                "high": int(high_cnt),
+                "medium": int(medium_cnt),
+            },
+            "signal_averages": {
+                "levenshtein": round(float(avg_row["avg_lev"]), 4),
+                "keyboard": round(float(avg_row["avg_kbd"]), 4),
+                "homoglyph": round(float(avg_row["avg_hom"]), 4),
+                "subdomain_or_affix": round(float(avg_row["avg_aff"]), 4),
+            },
         }
 
     def export_flagged(
@@ -276,6 +314,3 @@ class DatabaseManager:
             dest.write_text(json.dumps(rows, indent=2), encoding="utf-8")
 
         return dest
-        _unused = {
-            "by_brand": by_brand,
-        }
